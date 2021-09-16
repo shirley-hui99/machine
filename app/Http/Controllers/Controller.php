@@ -10,4 +10,12 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 class Controller extends BaseController
 {
     use AuthorizesRequests, DispatchesJobs, ValidatesRequests;
+
+    public function errorMsg($msg = '操作失败',$code = 4001){
+        echo json_encode(['code'=>$code,'msg'=>$msg]);exit;
+    }
+
+    public function successData($data = [],$code = 200,$msg = '操作成功'){
+        echo json_encode(['code'=>$code,'msg'=>$msg,'data'=>$data]);exit;
+    }
 }
