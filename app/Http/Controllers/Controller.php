@@ -18,4 +18,8 @@ class Controller extends BaseController
     public function successData($data = [],$code = 200,$msg = '操作成功'){
         echo json_encode(['code'=>$code,'msg'=>$msg,'data'=>$data]);exit;
     }
+
+    public function objectToArray($object){
+        return json_decode(json_encode($object),true);
+    }
 }

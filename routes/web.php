@@ -23,3 +23,5 @@ Route::post('addDevice','Admin\DeviceController@addDevice');
 Route::post('editDevice','Admin\DeviceController@editDevice');
 //分类
 Route::post('addCategory','Admin\CategoryController@addCategory');
+Route::post('editCategory','Admin\CategoryController@editCategory');
+Route::post('deleteCategory','Admin\CategoryController@deleteCategory');
