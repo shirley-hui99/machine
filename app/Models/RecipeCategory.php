@@ -8,4 +8,6 @@ class RecipeCategory extends Model
 {
     //
     protected $table = 'recipe_category';
+
+
 }

@@ -6,13 +6,29 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class CategoryController extends Controller
 {
-    public function index(Request $request)
+    public function index()
     {
-        $data = DB::table('category')->select();
-        return $this->successData($data);
+        $data = DB::table('category')->select('id','pid','name')->get();
+        $array = $this->objectToArray($data);
+        //第一步 构造数据
+        $items = [];
+        foreach($array as $value){
+            $items[$value['id']] = $value;
+        }
+        //第二部 遍历数据 生成树状结构
+        $tree = [];
+        foreach($items as $key => $value){
+            if(isset($items[$value['pid']])){
+                $items[$value['pid']]['son'][] = &$items[$key];
+            }else{
+                $tree[] = &$items[$key];
+            }
+        }
+        return $this->successData($tree);
     }
 
     /**
@@ -123,5 +139,41 @@ class CategoryController extends Controller
             return $this->errorMsg();
         }
         return $this->successData();
+    }
+
+    /**
+     * @param Request $request
+     * @return $this|\Illuminate\Http\RedirectResponse
+     * 上传图片
+     */
+    public function uploadImage(Request $request)
+    {
+        $image = $request->file('image');
+        if(!isset($image)){
+            return $this->errorMsg('请上传图片！');
+        }
+
+        if(!$image->isValid()){
+            return $this->errorMsg('请上传有效的图片！');
+        }
+
+        //获取原图片信息
+        $ext = $image->getClientOriginalExtension();
+        //$originalName = $file->getClientOriginalName();
+        //$type = $file->getClientMimeType();
+        $path = $image->getRealPath();
+        //验证图片类型，大小等
+
+        //保存图片
+        $save_name = uniqid()  .'.'. $ext;
+        $bool = Storage::disk('uploads')->put($save_name,file_get_contents($path));
+        if(!$bool){
+            return $this->errorMsg('图片上传失败！');
+        }
+
+        //保存路径
+        $img_web_path = 'uploads/'.date('Ymd').'/' .$save_name;
+
+        return $this->successData($img_web_path);
     }
 }
