@@ -10,14 +10,21 @@ class Admin extends Authenticatable implements JWTSubject
 {
     use Notifiable;
 
+    public $timestamps = false;
     protected $table = 'admin';
+
+    public function Role()
+    {
+        return $this->hasOne('App\Models\Role','id','role_id');
+    }
+
     /**
      * The attributes that are mass assignable.
      *
      * @var array
      */
     protected $fillable = [
-        'username', 'password',
+        'mobile', 'password','role_id','token'
     ];
 
     /**
