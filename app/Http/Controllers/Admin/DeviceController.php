@@ -113,4 +113,34 @@ class DeviceController extends Controller
         }
         return $this->successData();
     }
+
+    /**
+     * @param Request $request
+     * 做菜记录
+     */
+    public function record(Request $request)
+    {
+        $barcode = $request->input('barcode');
+        $name = $request->input('name');
+        $mobile = $request->input('mobile');
+        $pageSize = $request->input('page_size','10');
+
+        $query = DB::table('cook_record');
+
+        if($barcode){
+            $query->where('barcode','like','%'.$barcode.'%');
+        }
+
+        if($name){
+            $query->where('recipe_name','like','%'.$name.'%');
+        }
+
+        if($mobile){
+            $query->where('mobile','like','%'.$barcode.'%');
+        }
+
+        $data = $query->paginate($pageSize);
+
+        return $this->successData($data);
+    }
 }
