@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Recipe;
 use App\Models\RecipeCategory;
+use App\Models\RecipeProcess;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -327,17 +328,128 @@ class RecipeController extends Controller
     }
 
     /**
+     * @param Request $request
      * 添加菜品制作流程
      */
     public function addRecipeProcess(Request $request)
     {
-        $type = $request->input('type');// 1 说明 2 控制 3 称重 4 食材明细
-
-        switch ($type)
-        {
-            case 1:
-
-                break;
+        $recipeId = $request->input('recipe_id');// 菜品id
+        $type = $request->input('type',1);// 1 说明 2 控制 3 称重 4 食材明细
+        $content = $request->input('content');// json数组
+        if(!$recipeId){
+            return $this->errorMsg('菜品id不可为空');
         }
+
+        if(!$content){
+            return $this->errorMsg('制作流程内容不可为空');
+        }
+
+        $data = DB::table('recipe_process')->where(['recipe_id'=>$recipeId,'type'=>$type])->value('id');
+        if($data){
+            return $this->errorMsg('当前制作流程已存在');
+        }
+
+        $recipeProcess = new RecipeProcess();
+        $recipeProcess->recipe_id = $recipeId;
+        $recipeProcess->type = $type;
+        $recipeProcess->content = $content;
+
+        $res = $recipeProcess->save();
+
+        if(!$res){
+            return $this->errorMsg();
+        }
+        return $this->successData();
+    }
+
+    /**
+     * @param Request $request
+     * 编辑菜品制作流程
+     */
+    public function editRecipeProcess(Request $request)
+    {
+        $processId = $request->input('process_id');// 菜品id
+        $content = $request->input('content');// json数组
+        if(!$processId){
+            return $this->errorMsg('菜品制作流程id不可为空');
+        }
+
+        if(!$content){
+            return $this->errorMsg('制作流程内容不可为空');
+        }
+
+        $recipeProcess = RecipeProcess::find($processId);
+        if(!$recipeProcess){
+            return $this->errorMsg('制作流程不存在');
+        }
+
+        $recipeProcess->content = $content;
+        $res = $recipeProcess->save();
+
+        if(!$res){
+            return $this->errorMsg();
+        }
+        return $this->successData();
+    }
+
+    /**
+     * @param Request $request
+     * 删除菜品制作流程
+     */
+    public function deleteRecipeProcess(Request $request)
+    {
+        $processId = $request->input('process_id');// 制作流程id
+        if(!$processId){
+            return $this->errorMsg('菜品制作流程id不可为空');
+        }
+
+        $recipeProcess = RecipeProcess::find($processId);
+        if(!$recipeProcess){
+            return $this->errorMsg('制作流程不存在');
+        }
+
+        $res = $recipeProcess->delete();
+        if(!$res){
+            return $this->errorMsg();
+        }
+        return $this->successData();
+    }
+
+    /**
+     * @param Request $request
+     * 菜品其中一个制作流程
+     */
+    public function recipeProcessDetail(Request $request)
+    {
+        $processId = $request->input('process_id');// 制作流程id
+        if(!$processId){
+            return $this->errorMsg('菜品制作流程id不可为空');
+        }
+
+        $recipeProcess = RecipeProcess::find($processId);
+        if(!$recipeProcess){
+            return $this->errorMsg('制作流程不存在');
+        }
+
+        return $this->successData($recipeProcess);
+    }
+
+    /**
+     * @param Request $request
+     * 菜品制作流程
+     */
+    public function recipeProcess(Request $request)
+    {
+        $recipeId = $request->input('recipe_id');// 菜品id
+        if(!$recipeId){
+            return $this->errorMsg('菜品id不可为空');
+        }
+
+        $recipeProcess = DB::table('recipe_process')->where('recipe_id',$recipeId)->select('id','content','type','recipe_id')->get();
+        if(!$recipeProcess){
+            return $this->errorMsg('制作流程不存在');
+        }
+
+        return $this->successData($recipeProcess);
     }
 }
