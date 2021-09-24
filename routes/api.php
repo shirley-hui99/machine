@@ -25,5 +25,7 @@ Route::post('recommendRecipe', 'App\IndexController@recommendRecipe'); //获取�
 Route::post('newRecipe', 'App\IndexController@newRecipe'); //获取推荐菜谱
 
 // Route::middleware(['ShouQuan'])->group(function () {
-//
+//专辑
+Route::post('getAlbum', 'App\IndexController@getAlbum');
+
 // });
