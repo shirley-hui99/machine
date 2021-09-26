@@ -24,22 +24,25 @@ class RecipeController extends Controller
         $isRecommend = $request->input('is_recommend'); //推荐菜谱弹框展示 0 菜谱列表 1 推荐菜谱 -1 添加菜谱弹框
         $pageSize = $request->input('page_size',10);
 
-        $recipeIdsArray = [];
+        $catIdsArray = [];
         if($cateName){
             $catIds = DB::table('category')->where('name','like','%'.$cateName.'%')->pluck('id');
             $catIdsArray = $this->objectToArray($catIds);
-            $recipeIds = DB::table('recipe_category')->whereIn('category_id',$catIdsArray)->pluck('recipe_id');
-            $recipeIdsArray = $this->objectToArray($recipeIds);
-            if(!$recipeIdsArray){
+            if(!$catIdsArray){
                 return $this->successData([]);
             }
         }
 
-        $query = DB::table('recipe')->select(['id','name','picture','is_local']);
+        $query = Recipe::whereHas('RecipeCategory',function($query) use ($catIdsArray){
+            if($catIdsArray){
+                $query->whereIn('category_id',$catIdsArray);
+            }
 
-        if($recipeIdsArray){
-            $query->whereIn('id',$recipeIdsArray);
-        }
+        })->with(['RecipeCategory:category_id,recipe_id'],function($query) use ($catIdsArray){
+            if($catIdsArray){
+                $query->whereIn('category_id',$catIdsArray);
+            }
+        })->select(['id','name','picture','is_local']);
 
         if($name){
             $query->where('name','like','%'.$name.'%');
@@ -53,19 +56,15 @@ class RecipeController extends Controller
         $data = $query->paginate($pageSize);
         $dataArray = $this->objectToArray($data);
 
-        $recipeIds = array_column($dataArray['data'],'id');
-        $cateIds = DB::table('recipe_category')->whereIn('recipe_id',$recipeIds)->select('category_id','recipe_id')->get();
-        $cateArray = $this->objectToArray($cateIds);
-
-        // 分类名称
-        $cateData = [];
+        //分类名称
         $categoryName = $this->getCategoryName();
-        foreach ($cateArray as $k=>$v){
-            $cateData[$v['recipe_id']][] = $categoryName[$v['category_id']]??'';
-        }
 
         foreach ($dataArray['data'] as $key=>$value){
-            $dataArray['data'][$key]['cate_name'] = $cateData[$value['id']]??'';
+            if($value['recipe_category']){
+                foreach ($value['recipe_category'] as $k=>$val){
+                    $dataArray['data'][$key]['recipe_category'][$k]['cate_name'] = $categoryName[$val['category_id']]??'';
+                }
+            }
         }
 
         return $this->successData($dataArray);
@@ -293,14 +292,14 @@ class RecipeController extends Controller
      */
     public function newestRecipe()
     {
-        $data = DB::table('recipe')->select(['id','name','picture'])->limit(10)->orderBy('id')->get();
-        $dataArray = $this->objectToArray($data);
+        $data = Recipe::with('RecipeCategory:category_id,recipe_id')
+            ->select(['id','name','picture'])
+            ->limit(10)
+            ->orderBy('id')
+            ->get()
+            ->toArray();
 
-        $recipeIds = array_column($dataArray,'id');
-        // 分类
-        $cateIds = DB::table('recipe_category')->whereIn('recipe_id',$recipeIds)->select('category_id','recipe_id')->get();
-        $cateArray = $this->objectToArray($cateIds);
-
+        $recipeIds = array_column($data,'id');
         // 制作流程
         $processIds = DB::table('recipe_process')->whereIn('recipe_id',$recipeIds)->select('recipe_id')->get();
         $processArray = $this->objectToArray($processIds);
@@ -313,18 +312,18 @@ class RecipeController extends Controller
         }
 
         // 分类名称
-        $cateData = [];
         $categoryName = $this->getCategoryName();
-        foreach ($cateArray as $k=>$v){
-            $cateData[$v['recipe_id']][] = $categoryName[$v['category_id']]??'';
+
+        foreach ($data as $key=>$value){
+            $data[$key]['is_process'] = $isProcess[$value['id']]??0;
+            if($value['recipe_category']){
+                foreach ($value['recipe_category'] as $k=>$val){
+                    $data[$key]['recipe_category'][$k]['cate_name'] = $categoryName[$val['category_id']]??'';
+                }
+            }
         }
 
-        foreach ($dataArray as $key=>$value){
-            $dataArray[$key]['is_process'] = $isProcess[$value['id']]??0;
-            $dataArray[$key]['cate_name'] = $cateData[$value['id']]??'';
-        }
-
-        return $this->successData($dataArray);
+        return $this->successData($data);
     }
 
     /**
@@ -342,6 +341,11 @@ class RecipeController extends Controller
 
         if(!$content){
             return $this->errorMsg('制作流程内容不可为空');
+        }
+
+        $recipe = Recipe::find($recipeId);
+        if(!$recipe){
+            return $this->errorMsg('菜品不存在');
         }
 
         $data = DB::table('recipe_process')->where(['recipe_id'=>$recipeId,'type'=>$type])->value('id');
@@ -368,7 +372,7 @@ class RecipeController extends Controller
      */
     public function editRecipeProcess(Request $request)
     {
-        $processId = $request->input('process_id');// 菜品id
+        $processId = $request->input('process_id');// 制作流程id
         $content = $request->input('content');// json数组
         if(!$processId){
             return $this->errorMsg('菜品制作流程id不可为空');
@@ -431,6 +435,8 @@ class RecipeController extends Controller
             return $this->errorMsg('制作流程不存在');
         }
 
+        $recipeProcess->content = json_decode($recipeProcess->content,true)??[];
+
         return $this->successData($recipeProcess);
     }
 
@@ -445,9 +451,17 @@ class RecipeController extends Controller
             return $this->errorMsg('菜品id不可为空');
         }
 
-        $recipeProcess = DB::table('recipe_process')->where('recipe_id',$recipeId)->select('id','content','type','recipe_id')->get();
+        $recipeProcess = DB::table('recipe_process')
+            ->where('recipe_id',$recipeId)
+            ->select('id','type','content')
+            ->get()
+            ->toArray();
         if(!$recipeProcess){
             return $this->errorMsg('制作流程不存在');
+        }
+
+        foreach ($recipeProcess as $key=>&$value){
+            $value->content = json_decode($value->content,true)??[];
         }
 
         return $this->successData($recipeProcess);

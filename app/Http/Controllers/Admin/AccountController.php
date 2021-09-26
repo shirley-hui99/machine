@@ -21,8 +21,10 @@ class AccountController extends Controller
         $roleName = $request->input('role_name');
         $pageSize = $request->input('page_size',10);
 
-        $query = Admin::with(['Role'],function($query) use ($roleName){
+        $query = Admin::whereHas('Role',function($query) use ($roleName){
                 $query->where('name','like','%'.$roleName.'%');
+        })->with(['Role'],function($query) use ($roleName){
+            $query->where('name','like','%'.$roleName.'%');
         })->where('status',0)->select('id','mobile','role_id');
 
         if($mobile){
