@@ -17,7 +17,7 @@ class UserController extends Controller
     {
         $username = $request->input('username');
         $mobile = $request->input('mobile');
-        $pageSize = $request->input('page_size','10');
+        $pageSize = $request->input('page_size',10);
 
         $query = DB::table('user')
                 ->select('id','username','mobile','login_time','register_time');
@@ -43,7 +43,7 @@ class UserController extends Controller
     public function member(Request $request)
     {
         $mobile = $request->input('mobile');
-        $pageSize = $request->input('page_size','10');
+        $pageSize = $request->input('page_size',10);
 
         $query = DB::table('user')
             ->where('is_member',1)
@@ -67,6 +67,9 @@ class UserController extends Controller
     public function addMember(Request $request)
     {
         $mobile = $request->input('mobile');
+        if(!$mobile){
+            return $this->errorMsg('手机号不可为空');
+        }
 
         $user = User::where(['mobile'=>$mobile])->first();
         if(isset($user->is_member) && $user->is_member == 1){
@@ -101,6 +104,14 @@ class UserController extends Controller
     {
         $id = $request->input('id');
         $expireTime = $request->input('expire_time');
+
+        if(!$id){
+            return $this->errorMsg('会员id不可为空');
+        }
+
+        if(!$expireTime){
+            return $this->errorMsg('到期时间不可为空');
+        }
 
         $user = User::find($id);
         if(isset($user->is_member) && $user->is_member != 1){

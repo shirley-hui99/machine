@@ -13,10 +13,10 @@ class DeviceController extends Controller
     {
         $barcode = $request->input('barcode');
         $area = $request->input('area');
-//        $page = $request->input('page');
-        $pageSize = $request->input('page_size','10');
+        $pageSize = $request->input('page_size',10);
 
-        $query = DB::table('device')->where(['is_deleted'=>0]);
+        $query = DB::table('device')->where(['is_deleted'=>0])
+            ->select('id','barcode','factory_time','buy_time','area','ip_address','contacts','mobile','status','active_time','login_time');
 
         if($barcode){
             $query->where('barcode','like','%'.$barcode.'%');
@@ -24,7 +24,7 @@ class DeviceController extends Controller
 
         // 省市区
         if(!$area){
-
+            $query->where('area','like','%'.$area.'%');
         }
 
         $data = $query->paginate($pageSize);

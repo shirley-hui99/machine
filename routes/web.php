@@ -18,10 +18,12 @@ Route::get('/', function () {
 //登录
 Route::post('login', 'Admin\LoginController@index');
 Route::middleware(['checkToken'])->group(function (){
+    Route::post('index', 'Admin\IndexController@index');
     //设备
     Route::post('device', 'Admin\DeviceController@index');
     Route::post('addDevice', 'Admin\DeviceController@addDevice');
     Route::post('editDevice', 'Admin\DeviceController@editDevice');
+    Route::post('deleteDevice', 'Admin\DeviceController@deleteDevice');
     Route::post('record', 'Admin\DeviceController@record');//做菜记录
     //分类
     Route::post('category', 'Admin\CategoryController@index');
@@ -53,6 +55,9 @@ Route::middleware(['checkToken'])->group(function (){
     Route::post('deleteAccount', 'Admin\AccountController@deleteAccount');
     Route::post('resetPwd', 'Admin\AccountController@resetPwd');
     Route::post('changePwd', 'Admin\AccountController@changePwd');
+    Route::post('version', 'Admin\AccountController@version');
+    Route::post('uploadFile', 'Admin\AccountController@uploadFile');
+    Route::post('updateVersion', 'Admin\AccountController@updateVersion');
     // 角色
     Route::post('role', 'Admin\RoleController@index');
     Route::post('addRole', 'Admin\RoleController@addRole');

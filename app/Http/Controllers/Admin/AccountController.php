@@ -7,6 +7,7 @@ use App\Models\Admin;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 class AccountController extends Controller
 {
@@ -18,10 +19,10 @@ class AccountController extends Controller
     {
         $mobile = $request->input('mobile');
         $roleName = $request->input('role_name');
-        $pageSize = $request->input('page_size','10');
+        $pageSize = $request->input('page_size',10);
 
-        $query = Admin::whereHas('Role',function($query) use ($roleName){
-            $query->where('name','like','%'.$roleName.'%');
+        $query = Admin::with(['Role'],function($query) use ($roleName){
+                $query->where('name','like','%'.$roleName.'%');
         })->where('status',0)->select('id','mobile','role_id');
 
         if($mobile){
@@ -151,6 +152,7 @@ class AccountController extends Controller
     }
 
     /**
+     * @param Request $request
      * 修改密码
      */
     public function changePwd(Request $request)
@@ -175,6 +177,88 @@ class AccountController extends Controller
         $pwd = Hash::make($newPwd);
         $res = Admin::where('id',$adminId)->update(['password'=>$pwd]);
 
+        if(!$res){
+            return $this->errorMsg();
+        }
+        return $this->successData();
+    }
+
+    /**
+     * 当前APP版本
+     */
+    public function version()
+    {
+        $version = DB::table('version')->orderByDesc('id')->value('version');
+        return $this->successData($version);
+    }
+
+    /**
+     * @param Request $request
+     * @return $this|\Illuminate\Http\RedirectResponse
+     * 上传文件
+     */
+    public function uploadFile(Request $request)
+    {
+        $file = $request->file('file');
+        if(!isset($file)){
+            return $this->errorMsg('请上传文件！');
+        }
+
+        if(!$file->isValid()){
+            return $this->errorMsg('请上传有效的文件！');
+        }
+
+        $ext = $file->getClientOriginalExtension();
+        $path = $file->getRealPath();
+        //文件后缀
+        $imageTypes = array('zip','rar','exe');
+        if(!in_array($ext,$imageTypes)){
+            return $this->errorMsg('仅支持zip、rar、exe格式！');
+        }
+
+        //保存图片
+        $save_name = uniqid()  .'.'. $ext;
+        $bool = Storage::disk('files')->put($save_name,file_get_contents($path));
+        if(!$bool){
+            return $this->errorMsg('文件上传失败！');
+        }
+
+        //保存路径
+        $img_web_path = 'uploads/files/' .$save_name;
+
+        return $this->successData($img_web_path);
+    }
+
+    /**
+     * @param Request $request
+     * 更新APP版本
+     */
+    public function updateVersion(Request $request)
+    {
+        $version = $request->input('version');
+        $fileUrl = $request->input('file_url');
+
+        if(!$version){
+            return $this->errorMsg('版本号不可为空！');
+        }
+
+        if(!$fileUrl){
+            return $this->errorMsg('文件不可为空！');
+        }
+
+        $currentVersion = DB::table('version')->orderByDesc('id')->value('version');
+
+        if(!version_compare($version,$currentVersion,'gt')){
+            return $this->errorMsg('新版本号小于当前版本！');
+        }
+
+        $saveData = [
+            'version'=>$version,
+            'url'=>$fileUrl,
+            'add_time'=>date('Y-m-d H:i:s'),
+        ];
+
+        $res = DB::table('version')->insert($saveData);
         if(!$res){
             return $this->errorMsg();
         }

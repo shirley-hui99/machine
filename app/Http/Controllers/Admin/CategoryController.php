@@ -45,7 +45,7 @@ class CategoryController extends Controller
             return $this->errorMsg('分类名称不可为空');
         }
 
-        if(strlen($name) > 10){
+        if(mb_strlen($name) > 10){
             return $this->errorMsg('分类名称限制在十个字以内');
         }
 
@@ -160,9 +160,14 @@ class CategoryController extends Controller
         //获取原图片信息
         $ext = $image->getClientOriginalExtension();
         //$originalName = $file->getClientOriginalName();
-        //$type = $file->getClientMimeType();
+        //$type = $image->getClientMimeType();
         $path = $image->getRealPath();
         //验证图片类型，大小等
+        //文件后缀
+        $imageTypes = array('png','jpg','jpeg');
+        if(!in_array($ext,$imageTypes)){
+            return $this->errorMsg('仅支持png、jpg、jpeg格式！');
+        }
 
         //保存图片
         $save_name = uniqid()  .'.'. $ext;

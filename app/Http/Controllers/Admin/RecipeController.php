@@ -22,7 +22,7 @@ class RecipeController extends Controller
         $name = $request->input('name');// 菜品名称
         $cateName = $request->input('cate_name');//分类名称
         $isRecommend = $request->input('is_recommend'); //推荐菜谱弹框展示 0 菜谱列表 1 推荐菜谱 -1 添加菜谱弹框
-        $pageSize = $request->input('page_size','10');
+        $pageSize = $request->input('page_size',10);
 
         $recipeIdsArray = [];
         if($cateName){
@@ -232,7 +232,7 @@ class RecipeController extends Controller
     public function deleteRecipe(Request $request)
     {
         $ids = $request->input('ids');
-        $type = $request->input('type');// 0 菜谱列表 1 推荐菜谱
+        $type = $request->input('type',0);// 0 菜谱列表 1 推荐菜谱
         if(!$ids){
             return $this->errorMsg('菜品id不可为空');
         }

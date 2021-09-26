@@ -53,6 +53,11 @@ return [
             'root' => public_path('uploads/'.date('Ymd')),
         ],
 
+        'files' => [
+            'driver' => 'local',
+            'root' => public_path('uploads/files'),
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

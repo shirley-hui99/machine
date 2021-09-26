@@ -16,7 +16,7 @@ class RoleController extends Controller
     public function index(Request $request)
     {
         $name = $request->input('name');
-        $pageSize = $request->input('page_size','10');
+        $pageSize = $request->input('page_size',10);
 
         $query = Role::with(['RoleAccess'=>function ($query){
             $query->select('access_id','role_id');
@@ -62,7 +62,7 @@ class RoleController extends Controller
                 $accessData[] = [
                     'role_id'=>$roleId,
                     'access_id'=>$val,
-                    'addtime'=>date('Y-m-d H:i:s'),
+                    'add_time'=>date('Y-m-d H:i:s'),
                 ];
             }
 
@@ -93,6 +93,9 @@ class RoleController extends Controller
         }
 
         $role = Role::find($id);
+        if(!$role){
+            return $this->errorMsg('角色不存在');
+        }
 
         if(mb_strlen($name) > 10 || mb_strlen($name) < 3){
             return $this->errorMsg('角色名称限制3-10位字数');
@@ -123,7 +126,7 @@ class RoleController extends Controller
                     $accessData[] = [
                         'role_id'=>$id,
                         'access_id'=>$val,
-                        'addtime'=>date('Y-m-d H:i:s'),
+                        'add_time'=>date('Y-m-d H:i:s'),
                     ];
                 }
                 DB::table('role_access')->insert($accessData);
@@ -152,19 +155,19 @@ class RoleController extends Controller
     {
         $ids = $request->input('ids');
         if(!$ids){
-            return $this->errorMsg('菜品id不可为空');
+            return $this->errorMsg('角色id不可为空');
         }
         $idsArray = explode(',',$ids);
         if(!is_array($idsArray)){
-            return $this->errorMsg('菜品id参数格式不正确');
+            return $this->errorMsg('角色id参数格式不正确');
         }
 
-        $exist = DB::table('admin')->whereIn('role_id',$ids)->first();
+        $exist = DB::table('admin')->whereIn('role_id',$idsArray)->first();
         if($exist){
             return $this->errorMsg('角色下存在账号，不可删除');
         }
 
-        // 删除角色以及菜品分类
+        // 删除角色以及角色权限
         $res1 = Role::destroy($idsArray);
         $res2 = DB::table('role_access')->whereIn('role_id',$idsArray)->delete();
 
